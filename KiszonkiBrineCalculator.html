@@ -1,0 +1,455 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Kiszonki Brine Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Zilla+Slab:wght@500;600;700&display=swap">
+<style>
+/* Layout: an instrument panel — vegetable and weights at left, the salt readout and its derivation at right; one column below 860px */
+:root{
+  --bg:#ECF0EB; --surface:#F8FAF6; --sunk:#E1E9DF;
+  --ink:#17201B; --muted:#5B6A61; --line:#C7D3C6; --line-strong:#A2B2A1;
+  --accent:#1D5985; --accent-soft:#D8E5EF; --dill:#44742F; --warn:#8E5411;
+  --font-display:"Zilla Slab",Georgia,"Times New Roman",serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111614; --surface:#19201B; --sunk:#232B25;
+    --ink:#E2E9E1; --muted:#96A69C; --line:#2F3A33; --line-strong:#4B594F;
+    --accent:#77B1DB; --accent-soft:#1A2C3A; --dill:#92C077; --warn:#D79A50;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111614; --surface:#19201B; --sunk:#232B25;
+  --ink:#E2E9E1; --muted:#96A69C; --line:#2F3A33; --line-strong:#4B594F;
+  --accent:#77B1DB; --accent-soft:#1A2C3A; --dill:#92C077; --warn:#D79A50;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{
+  max-width:1060px; margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:32px 56px;
+}
+
+/* ---- masthead ---- */
+.masthead{border-bottom:2px solid var(--line-strong); padding-bottom:18px; margin-bottom:26px}
+.eyebrow{
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 8px;
+}
+h1{
+  font-family:var(--font-display); font-weight:700; font-size:clamp(28px,5vw,40px);
+  line-height:1.08; margin:0 0 10px; text-wrap:balance; letter-spacing:-.01em;
+}
+.standfirst{margin:0; color:var(--muted); max-width:62ch; font-size:15px}
+
+/* ---- grid ---- */
+.panel{display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:start}
+@media (max-width:860px){.panel{grid-template-columns:1fr}}
+
+.card{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:3px; padding:20px 18px;
+}
+.card + .card{margin-top:18px}
+h2{
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 16px; padding-bottom:8px; border-bottom:1px solid var(--line);
+  font-weight:500;
+}
+
+/* ---- controls ---- */
+.field{display:flex; flex-direction:column; gap:6px; margin-bottom:16px; min-width:0}
+.field:last-child{margin-bottom:0}
+label{font-size:13px; font-weight:500}
+.hint{font-size:12px; color:var(--muted); line-height:1.4}
+select,input[type=number]{
+  font-family:var(--font-body); font-size:15px; color:var(--ink);
+  background:var(--sunk); border:1px solid var(--line-strong); border-radius:2px;
+  padding:9px 10px; width:100%; min-width:0;
+}
+input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:420px){.row{grid-template-columns:1fr}}
+
+.seg{display:flex; border:1px solid var(--line-strong); border-radius:2px; overflow:hidden; width:fit-content; max-width:100%}
+.seg button{
+  font-family:var(--font-body); font-size:12.5px; font-weight:500; color:var(--muted);
+  background:var(--sunk); border:0; border-right:1px solid var(--line-strong);
+  padding:7px 13px; cursor:pointer; white-space:nowrap;
+}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--accent); color:#fff}
+.seg-wrap{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:18px}
+.seg-label{font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+
+/* ---- readout ---- */
+.readout{
+  background:var(--accent-soft); border:1px solid var(--accent);
+  border-radius:3px; padding:22px 20px; margin-bottom:18px;
+}
+.readout .what{font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 4px}
+.big{
+  font-family:var(--font-display); font-weight:700; font-variant-numeric:tabular-nums;
+  font-size:clamp(44px,10vw,64px); line-height:1; letter-spacing:-.02em; margin:0;
+}
+.big span{font-size:.38em; font-weight:500; margin-left:.12em; letter-spacing:0}
+.sub{margin:8px 0 0; font-size:13.5px; color:var(--ink); opacity:.78}
+
+/* ---- data rows ---- */
+dl{margin:0; display:grid; grid-template-columns:1fr auto; gap:0}
+dt,dd{margin:0; padding:9px 0; border-bottom:1px dotted var(--line); font-size:13.5px; min-width:0}
+dt{color:var(--muted); padding-right:12px}
+dd{font-family:var(--font-mono); font-variant-numeric:tabular-nums; text-align:right; font-weight:500}
+dl > :nth-last-child(1),dl > :nth-last-child(2){border-bottom:0}
+
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th,td{text-align:left; padding:8px 10px 8px 0; border-bottom:1px solid var(--line); white-space:nowrap}
+th{font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:500}
+td:last-child,th:last-child{text-align:right; padding-right:0; font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+
+.note{
+  border-left:3px solid var(--dill); padding:2px 0 2px 13px;
+  font-size:13.5px; color:var(--muted); margin:16px 0 0;
+}
+.flag{color:var(--warn); font-weight:500}
+.rules{margin:26px 0 0; padding:0; list-style:none; display:grid; gap:11px}
+.rules li{font-size:13.5px; color:var(--muted); padding-left:20px; position:relative; max-width:70ch}
+.rules li::before{content:"—"; position:absolute; left:0; color:var(--accent); font-family:var(--font-mono)}
+footer{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); max-width:70ch}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Kiszonki · fermentation worksheet</p>
+    <h1>How much salt does this jar need?</h1>
+    <p class="standfirst">Salt for Polish ferments, figured against the water already inside the vegetables — not just the water you pour in. Weigh everything; a tablespoon of salt can be 8 grams or 19 depending on the box.</p>
+  </header>
+
+  <div class="seg-wrap">
+    <span class="seg-label">Units</span>
+    <div class="seg" id="units" role="group" aria-label="Units">
+      <button type="button" data-unit="metric" aria-pressed="true">Grams &amp; ml</button>
+      <button type="button" data-unit="us" aria-pressed="false">Pounds &amp; cups</button>
+    </div>
+    <span class="seg-label" style="margin-left:6px">Method</span>
+    <div class="seg" id="method" role="group" aria-label="Method">
+      <button type="button" data-method="brine" aria-pressed="true">Poured brine</button>
+      <button type="button" data-method="dry" aria-pressed="false">Dry salted</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div>
+      <section class="card">
+        <h2>What you're putting up</h2>
+
+        <div class="field">
+          <label for="veg">Vegetable</label>
+          <select id="veg"></select>
+          <p class="hint" id="vegwater"></p>
+        </div>
+
+        <div class="field">
+          <label for="jar">Or size it from the jar</label>
+          <select id="jar">
+            <option value="0">Enter weights myself</option>
+            <option value="0.5">½ litre / 1 pint jar</option>
+            <option value="1">1 litre / 1 quart jar</option>
+            <option value="1.9">2 litre / ½ gallon jar</option>
+            <option value="3.8">4 litre / 1 gallon jar</option>
+            <option value="19">19 litre / 5 gallon crock</option>
+          </select>
+          <p class="hint">Estimates how much vegetable fits and how much water goes around it. Weigh what you actually pack and come back.</p>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="vegw">Vegetable weight <span class="unit-w">(g)</span></label>
+            <input type="number" id="vegw" min="0" step="10" value="1500">
+          </div>
+          <div class="field" id="waterfield">
+            <label for="waterw">Water added <span class="unit-v">(ml)</span></label>
+            <input type="number" id="waterw" min="0" step="10" value="1000">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="pct">Target salinity — <span id="pctshow">3.0</span>%</label>
+          <input type="number" id="pct" min="0.5" max="8" step="0.1" value="3">
+          <p class="hint" id="pcthint"></p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Measuring it out</h2>
+        <p class="hint" style="margin:-6px 0 14px">Spoon figures are a fallback. Salt densities differ by more than double, which is why half the cucumber batches on the internet come out wrong.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th scope="col">If your salt is</th><th scope="col">Measure</th></tr></thead>
+            <tbody id="salttable"></tbody>
+          </table>
+        </div>
+        <p class="note">Non-iodized only. Iodine and the anti-caking agents in table salt hold back the lactic bacteria you're trying to feed. Polish rock salt (<em>sól kamienna niejodowana</em>), pickling salt and plain kosher salt all work.</p>
+      </section>
+    </div>
+
+    <div>
+      <div class="readout">
+        <p class="what">Salt to weigh out</p>
+        <p class="big" id="saltg">—<span>g</span></p>
+        <p class="sub" id="saltsub"></p>
+      </div>
+
+      <section class="card">
+        <h2>How that number comes out</h2>
+        <dl id="derivation"></dl>
+        <p class="note" id="equilnote"></p>
+      </section>
+
+      <section class="card">
+        <h2>Running the ferment</h2>
+        <dl id="ferment"></dl>
+        <p class="note" id="vegnote"></p>
+      </section>
+    </div>
+  </div>
+
+  <ul class="rules">
+    <li>Everything stays under the liquid. A follower — a plate, a boiled stone, a water-filled bag, a cabbage leaf wedged under the shoulder of the jar — matters more than any number on this page.</li>
+    <li>Ferment at room temperature until it tastes right, then move it cold. Warmer is faster and softer; cooler is slower and crisper.</li>
+    <li>White film on top is kahm yeast. Skim it. Fuzzy, colored growth is mold: that jar goes out.</li>
+    <li>Chlorinated tap water slows the start. Let it sit out overnight or boil and cool it.</li>
+    <li>Topping a jar up later? Make the extra liquid at your target strength so you don't dilute what's already working.</li>
+  </ul>
+
+  <footer>Figures follow standard fermentation practice: salt as a share of the whole aqueous phase, which is what the bacteria actually sit in. Water contents are USDA averages and vary with the season and how long the vegetables sat in a cooler. Treat the output as a starting point and taste as you go.</footer>
+</div>
+
+<script>
+var VEG = {
+  ogorki: {label:"Ogórki kiszone — dill cucumbers, whole", water:.96, pct:3.0, method:"brine", pack:.58,
+    days:"5–10 days", temp:"18–20 °C / 64–68 °F", range:"2.5–3.5%",
+    note:"Leave the blossom end on and tuck in a horseradish, oak or cherry leaf. The tannins suppress the enzyme that turns cucumbers to mush."},
+  malosolne: {label:"Ogórki małosolne — half-sours", water:.96, pct:2.0, method:"brine", pack:.58,
+    days:"2–3 days", temp:"20–22 °C / 68–72 °F", range:"1.5–2.5%",
+    note:"Pull them as soon as the brine clouds and smells of dill. They keep souring on the counter, so refrigerate the moment they taste right."},
+  kapusta: {label:"Kapusta kiszona — sauerkraut, shredded", water:.92, pct:2.0, method:"dry", pack:.88,
+    days:"14–28 days", temp:"18–20 °C / 64–68 °F", range:"1.8–2.5%",
+    note:"Salt in layers and work it until the juice runs and covers the shred. If it is still dry after 24 hours, top up with brine at the same strength rather than plain water."},
+  kapustamarch: {label:"Kapusta z marchewką — kraut with carrot", water:.91, pct:2.0, method:"dry", pack:.88,
+    days:"14–28 days", temp:"18–20 °C / 64–68 °F", range:"1.8–2.5%",
+    note:"Carrot adds sugar, so this one ferments fast and tastes sweeter early. Keep carrot under about a tenth of the total or the texture goes soft."},
+  pomidory: {label:"Pomidory zielone kiszone — green tomatoes", water:.93, pct:3.0, method:"brine", pack:.55,
+    days:"7–14 days", temp:"18–20 °C / 64–68 °F", range:"2.5–3.5%",
+    note:"Prick each tomato once with a skewer so the brine gets in. Hard, unblemished green fruit only — anything blushing red will collapse."},
+  buraki: {label:"Buraki kiszone — beets, for barszcz", water:.88, pct:2.0, method:"brine", pack:.65,
+    days:"5–7 days", temp:"18–22 °C / 64–72 °F", range:"1.5–2.5%",
+    note:"The liquid is the point. A slice of rye bread crust on top starts it faster; pull the crust after two days so it doesn't go ropy."},
+  rzepa: {label:"Rzepa / rzodkiew kiszona — turnip or daikon", water:.90, pct:2.5, method:"brine", pack:.65,
+    days:"7–14 days", temp:"18–20 °C / 64–68 °F", range:"2–3%",
+    note:"Cut in planks or batons rather than rounds; rounds pack flat and trap air pockets that go off."},
+  papryka: {label:"Papryka kiszona — peppers", water:.94, pct:3.0, method:"brine", pack:.55,
+    days:"7–14 days", temp:"18–20 °C / 64–68 °F", range:"2.5–3.5%",
+    note:"Seed and quarter them, or slit whole peppers so the cavity fills. Trapped air floats them straight out of the brine."},
+  czosnek: {label:"Czosnek kiszony — garlic cloves", water:.59, pct:3.0, method:"brine", pack:.60,
+    days:"21–30 days", temp:"18–20 °C / 64–68 °F", range:"2.5–3.5%",
+    note:"Garlic is mostly solids, so very little of its own water joins the brine — this is where figuring salt against total mass goes furthest wrong. Blue-green cloves are a harmless sulfur reaction."},
+  grzyby: {label:"Grzyby kiszone — milk caps, rydze", water:.92, pct:3.0, method:"dry", pack:.60,
+    days:"14–21 days", temp:"16–18 °C / 61–64 °F", range:"2.5–4%",
+    note:"Only mushrooms you have positively identified, gills down, salted in layers. Rydze and inne mleczaje are the traditional ones; they firm up rather than soften."}
+};
+
+var SALTS = [
+  ["Sól kamienna niejodowana — coarse rock", 16],
+  ["Pickling / canning salt", 18.5],
+  ["Fine sea salt", 17],
+  ["Non-iodized table salt", 18],
+  ["Diamond Crystal kosher", 8.5],
+  ["Morton kosher", 14.5]
+];
+
+var state = {unit:"metric", method:"brine", veg:"ogorki", veg_g:1500, water_g:1000, pct:3};
+var LB=453.592, CUP=236.588, OZ=28.3495;
+
+var $ = function(id){ return document.getElementById(id); };
+
+function fmt(n, dp){
+  if (!isFinite(n)) return "—";
+  var d = dp === undefined ? (n < 100 ? 1 : 0) : dp;
+  return n.toLocaleString("en-US",{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+function frac(x){
+  var map = {0.25:"¼", 0.5:"½", 0.75:"¾"};
+  var whole = Math.floor(x), rest = Math.round((x-whole)*4)/4;
+  if (rest === 0) return String(whole);
+  return (whole ? whole + " " : "") + map[rest];
+}
+function spoons(g, perTbsp){
+  if (!(g > 0)) return "—";
+  var perTsp = perTbsp/3;
+  var tbsp = Math.floor(g/perTbsp);
+  var tsp = Math.round((g - tbsp*perTbsp)/perTsp*4)/4;
+  if (tsp >= 3){ tbsp += 1; tsp = 0; }
+  var out = [];
+  if (tbsp >= 16){
+    var cups = Math.floor(tbsp/16);
+    out.push(cups + (cups === 1 ? " cup" : " cups"));
+    tbsp -= cups*16;
+  }
+  if (tbsp) out.push(tbsp + " tbsp");
+  if (tsp) out.push(frac(tsp) + " tsp");
+  return out.length ? out.join(" + ") : "a pinch";
+}
+
+function compute(){
+  var v = VEG[state.veg];
+  var V = state.veg_g, W = state.water_g, p = state.pct;
+  var vegWater = V * v.water;
+  if (state.method === "dry"){
+    var salt = V * p/100;
+    return {salt:salt, vegWater:vegWater, totalWater:vegWater, juicePct: vegWater ? salt/vegWater*100 : 0,
+            massPct: V ? salt/V*100 : 0, dry:true};
+  }
+  var totalWater = vegWater + W;
+  var s = totalWater * p/100;
+  return {salt:s, vegWater:vegWater, addedWater:W, totalWater:totalWater,
+          pourPct: W ? s/W*100 : 0, massPct: (V+W) ? s/(V+W)*100 : 0, dry:false};
+}
+
+function render(){
+  var v = VEG[state.veg], r = compute(), metric = state.unit === "metric";
+
+  $("saltg").innerHTML = fmt(r.salt) + "<span>g</span>";
+  $("saltsub").textContent = metric
+    ? "Weigh it. " + fmt(r.salt/OZ, 2) + " oz if your scale only does ounces."
+    : fmt(r.salt/OZ, 2) + " oz — but set the scale to grams if it has them.";
+
+  var rows = [];
+  if (r.dry){
+    rows.push(["Vegetable", fmt(metric ? state.veg_g : state.veg_g/LB, metric?0:2) + (metric?" g":" lb")]);
+    rows.push(["Water inside it (" + Math.round(v.water*100) + "%)", fmt(r.vegWater,0) + " g"]);
+    rows.push(["Salt at " + state.pct.toFixed(1) + "% of vegetable weight", fmt(r.salt) + " g"]);
+    rows.push(["Salinity of the juice it releases", r.juicePct.toFixed(2) + "%"]);
+    $("equilnote").innerHTML = "Dry salting takes its percentage from the vegetable, not from water. Once the juice is drawn out, the liquid the bacteria live in sits near <strong>" + r.juicePct.toFixed(1) + "%</strong>, because only about " + Math.round(v.water*100) + "% of the shred is water. That is the number worth knowing if you are comparing a kraut recipe against a brined one.";
+  } else {
+    rows.push(["Water you pour in", fmt(metric ? r.addedWater : r.addedWater/CUP, metric?0:2) + (metric?" ml":" cups")]);
+    rows.push(["Water already in the vegetables (" + Math.round(v.water*100) + "%)", fmt(r.vegWater,0) + " g"]);
+    rows.push(["Total water in the jar", fmt(r.totalWater,0) + " g"]);
+    rows.push(["Salt at " + state.pct.toFixed(1) + "% of that", fmt(r.salt) + " g"]);
+    rows.push(["Same salt as a share of total weight", r.massPct.toFixed(2) + "%"]);
+    rows.push(["Top-up brine, if the jar runs low", fmt(state.pct*10) + " g salt per litre"]);
+    $("equilnote").innerHTML = "All that salt dissolves in just the water you pour, so the brine goes into the jar at about <strong>" + r.pourPct.toFixed(1) + "%</strong> — far stronger than your target. Over two or three days it diffuses into the vegetables and the whole jar settles at " + state.pct.toFixed(1) + "%. That is the point. Mixing the brine at " + state.pct.toFixed(1) + "% instead leaves the finished ferment under-salted, which is how batches turn soft and slimy.";
+  }
+  $("derivation").innerHTML = rows.map(function(x){
+    return "<dt>" + x[0] + "</dt><dd>" + x[1] + "</dd>";
+  }).join("");
+
+  $("ferment").innerHTML =
+    "<dt>Usual salinity for this</dt><dd>" + v.range + "</dd>" +
+    "<dt>Method</dt><dd>" + (r.dry ? "Dry salted" : "Poured brine") + "</dd>" +
+    "<dt>Room-temperature stage</dt><dd>" + v.days + "</dd>" +
+    "<dt>Hold it around</dt><dd>" + v.temp + "</dd>";
+  $("vegnote").textContent = v.note;
+
+  $("salttable").innerHTML = SALTS.map(function(s){
+    return "<tr><td>" + s[0] + "</td><td>" + spoons(r.salt, s[1]) + "</td></tr>";
+  }).join("");
+
+  $("vegwater").textContent = "About " + Math.round(v.water*100) + "% water by weight. That water counts toward the brine, which is why the salt figure is higher than a recipe that only measures what you pour.";
+  $("pctshow").textContent = state.pct.toFixed(1);
+  var hint = "Typical range for this is " + v.range + ".";
+  var flag = "";
+  if (state.pct < 1.5) flag = "Below 1.5% the ferment runs loose — expect soft texture and a short shelf life.";
+  else if (state.pct > 5) flag = "Above 5% the lactic bacteria stall out and you are curing, not fermenting.";
+  $("pcthint").innerHTML = hint + (flag ? ' <span class="flag">' + flag + "</span>" : "");
+
+  $("waterfield").hidden = (state.method === "dry");
+}
+
+function syncUnitLabels(){
+  var metric = state.unit === "metric";
+  Array.prototype.forEach.call(document.querySelectorAll(".unit-w"), function(e){ e.textContent = metric ? "(g)" : "(lb)"; });
+  Array.prototype.forEach.call(document.querySelectorAll(".unit-v"), function(e){ e.textContent = metric ? "(ml)" : "(cups)"; });
+  $("vegw").value = metric ? Math.round(state.veg_g) : (state.veg_g/LB).toFixed(2);
+  $("vegw").step = metric ? 10 : 0.25;
+  $("waterw").value = metric ? Math.round(state.water_g) : (state.water_g/CUP).toFixed(2);
+  $("waterw").step = metric ? 10 : 0.25;
+}
+
+// vegetable list
+$("veg").innerHTML = Object.keys(VEG).map(function(k){
+  return '<option value="' + k + '">' + VEG[k].label + "</option>";
+}).join("");
+
+$("veg").addEventListener("change", function(){
+  state.veg = this.value;
+  var v = VEG[state.veg];
+  state.pct = v.pct;
+  state.method = v.method;
+  $("pct").value = v.pct;
+  Array.prototype.forEach.call(document.querySelectorAll("#method button"), function(b){
+    b.setAttribute("aria-pressed", String(b.dataset.method === state.method));
+  });
+  applyJar();
+  render();
+});
+
+function applyJar(){
+  var L = parseFloat($("jar").value) || 0;
+  if (!L) return;
+  var v = VEG[state.veg];
+  state.veg_g = Math.round(L * 1000 * v.pack);
+  state.water_g = (state.method === "dry") ? 0 : Math.round(L * 1000 * (1 - v.pack) * 0.94);
+  syncUnitLabels();
+}
+$("jar").addEventListener("change", function(){ applyJar(); render(); });
+
+$("vegw").addEventListener("input", function(){
+  var n = parseFloat(this.value) || 0;
+  state.veg_g = state.unit === "metric" ? n : n * LB;
+  $("jar").value = "0"; render();
+});
+$("waterw").addEventListener("input", function(){
+  var n = parseFloat(this.value) || 0;
+  state.water_g = state.unit === "metric" ? n : n * CUP;
+  $("jar").value = "0"; render();
+});
+$("pct").addEventListener("input", function(){
+  state.pct = Math.max(0.1, parseFloat(this.value) || 0); render();
+});
+
+$("units").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  state.unit = b.dataset.unit;
+  Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){
+    x.setAttribute("aria-pressed", String(x === b));
+  });
+  syncUnitLabels(); render();
+});
+$("method").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  state.method = b.dataset.method;
+  Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){
+    x.setAttribute("aria-pressed", String(x === b));
+  });
+  render();
+});
+
+syncUnitLabels();
+render();
+</script>
+
+</body></html>
